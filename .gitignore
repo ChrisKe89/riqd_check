@@ -4,4 +4,5 @@ storageState.json
 playwright-report/
 test-results/
 *.log
-certs/
+.\certs/
+certs\netskope-root.cer
