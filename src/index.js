@@ -30,6 +30,7 @@ const isNo = (v) => norm(v).toUpperCase() === "N";
   page.setDefaultTimeout(config.defaultTimeoutMs);
 
   await gotoTimeline(page, config.baseUrl);
+  await page.waitForTimeout(10000);
 
   let updated = 0;
   let processed = 0;
