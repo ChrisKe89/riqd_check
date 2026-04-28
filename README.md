@@ -96,8 +96,42 @@ What the script does:
 - Treats the serial as connected when the JSON response contains one or more `analyses`
 - If found, updates `RIQD_Connected` to `"Y"`
 - Writes changes back to the CSV immediately
+- Copies the completed CSV to `CSV_OUTPUT` when that setting is present in `.env`
 
 You can stop and rerun at any time.
+
+### Windows wrappers
+
+For normal scheduled or on-demand Windows use:
+
+```powershell
+pnpm run run:windows
+```
+
+For refreshing the saved login/session:
+
+```powershell
+pnpm run auth:windows
+```
+
+`run:windows` writes a timestamped log under `logs/`, forces `HEADLESS=true`, and stops the run if it exceeds 20 minutes.
+
+### Scheduled task
+
+Run this once from PowerShell in the repo root to create the scheduled task:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\register-riqd-scheduled-task.ps1
+```
+
+The task is registered as `RIQD Connectivity Check` for the current Windows user. It runs Monday to Friday at 9:30 AM, starts when available if the scheduled time was missed, runs headless, stops after 20 minutes, and retries up to 3 times with a 5-minute interval.
+
+To create it from any location:
+
+```powershell
+$RepoRoot = "C:\Users\ckent\dev\experiments\riqd_check"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$RepoRoot\scripts\register-riqd-scheduled-task.ps1" -RepoRoot $RepoRoot
+```
 
 ***
 
@@ -118,6 +152,8 @@ Serial_Number,Description,RIQD_Connected
 ```
 
 Rows with `RIQD_Connected = Y` are skipped. Blank and `N` values are checked.
+
+If `CSV_OUTPUT` is set, the output file keeps the same filename as `CSV_PATH` and is copied into that directory after each run.
 
 ***
 

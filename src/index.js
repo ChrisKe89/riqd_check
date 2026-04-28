@@ -1,5 +1,5 @@
 const config = require("./config");
-const { readCsv, writeCsv } = require("./csvStore");
+const { copyCsvToOutput, readCsv, writeCsv } = require("./csvStore");
 const {
   cookieHeaderFromStorageState,
   createTimelineClient,
@@ -59,7 +59,10 @@ const { readSessionToken, resolveCsrfToken } = require("./sessionStore");
     }
   }
 
+  const copiedPath = copyCsvToOutput(absPath, config.csvOutput);
+
   process.stdout.write(`Processed: ${processed}\nUpdated to Y: ${updated}\nCSV: ${absPath}\n`);
+  if (copiedPath) process.stdout.write(`Copied CSV to: ${copiedPath}\n`);
 })().catch((err) => {
   process.stderr.write(`${err?.stack || err}\n`);
   process.exitCode = 1;

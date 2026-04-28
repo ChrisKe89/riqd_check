@@ -14,6 +14,7 @@ const toInt = (v, d) => {
 module.exports = {
   baseUrl: process.env.BASE_URL || "https://esps-fb-jp.fujifilm.com/iq/timeline",
   csvPath: process.env.CSV_PATH || "./data/riqd_serial.csv",
+  csvOutput: process.env.CSV_OUTPUT || "",
   headless: toBool(process.env.HEADLESS, true),
   slowMoMs: toInt(process.env.SLOW_MO_MS, 0),
   defaultTimeoutMs: toInt(process.env.DEFAULT_TIMEOUT_MS, 30000),

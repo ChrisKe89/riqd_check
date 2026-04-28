@@ -15,3 +15,5 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 - Added Node test coverage for API response detection and row processing rules.
 - Added automatic CSRF token capture during `pnpm run auth`.
+- Added optional `CSV_OUTPUT` copying after a run completes.
+- Added Windows PowerShell wrappers for on-demand runs, authentication refresh, and scheduled task registration.

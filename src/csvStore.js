@@ -29,4 +29,16 @@ const writeCsv = (absPath, headers, records) => {
   fs.writeFileSync(absPath, output, "utf8");
 };
 
-module.exports = { readCsv, writeCsv };
+const copyCsvToOutput = (sourcePath, outputDir) => {
+  if (!outputDir) return "";
+
+  const absSource = path.resolve(sourcePath);
+  const destinationDir = path.resolve(outputDir);
+  const destinationPath = path.join(destinationDir, path.basename(absSource));
+
+  fs.mkdirSync(destinationDir, { recursive: true });
+  fs.copyFileSync(absSource, destinationPath);
+  return destinationPath;
+};
+
+module.exports = { copyCsvToOutput, readCsv, writeCsv };

@@ -5,7 +5,9 @@
   "type": "commonjs",
   "scripts": {
     "auth": "node src/auth.js",
+    "auth:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/auth-riqd.ps1",
     "run": "node src/index.js",
+    "run:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-riqd-check.ps1",
     "test": "node --test",
     "postinstall": "pnpm exec playwright install"
   },
