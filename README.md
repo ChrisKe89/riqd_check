@@ -1,6 +1,8 @@
-# RIQD Connectivity Check – Playwright Automation
+# RIQD Connectivity Check
 
-This project uses **Playwright (Node.js)** to check whether devices are connected to RIQD by searching serial numbers on the Fujifilm IQ Timeline site and updating a CSV file accordingly.
+This project checks whether devices are connected to RIQD by posting serial-number searches directly to the Fujifilm IQ Timeline endpoint and updating a CSV file accordingly.
+
+Playwright is still used for the one-time SSO/MFA login step that saves an authenticated browser session. Normal runs use the saved session cookies with Node's `fetch`, avoiding fragile browser UI checks.
 
 The environment runs **behind Netskope**, so a trusted root certificate **must be set explicitly each time** before installing dependencies.
 
@@ -8,9 +10,9 @@ The environment runs **behind Netskope**, so a trusted root certificate **must b
 
 ## Prerequisites
 
-*   **Node.js** ≥ 18
-*   **pnpm** ≥ 8
-*   Corporate network access (Netskope)
+- **Node.js** ≥ 18
+- **pnpm** ≥ 8
+- Corporate network access (Netskope)
 
 ***
 
@@ -22,6 +24,7 @@ The environment runs **behind Netskope**, so a trusted root certificate **must b
       data/
         riqud_serial.csv
       src/
+      test/
       package.json
       .env.example
 
@@ -65,16 +68,17 @@ pnpm run auth
 
 What happens:
 
-1.  A browser opens in headed mode
-2.  Log in normally (SSO / MFA)
-3.  Playwright Inspector opens and pauses
-4.  Click **Resume**
-5.  A `storageState.json` file is saved
+1. A browser opens in headed mode
+1. Log in normally (SSO / MFA)
+1. Perform one serial-number search in the IQ Timeline page
+1. Playwright captures the `x-csrftoken` header from the `/iq/timeline` request
+1. Click **Resume** in Playwright Inspector
+1. `storageState.json` and `.riqd-session.json` are saved
 
-This file is reused for all future runs.
+These files are reused for all future runs.
 
 ✅ Credentials are **not** stored in code  
-✅ `storageState.json` is ignored by Git
+✅ `storageState.json` and `.riqd-session.json` are ignored by Git
 
 ***
 
@@ -86,12 +90,12 @@ pnpm run run
 
 What the script does:
 
-*   Reads `data/riqd_serial.csv`
-*   Processes **only rows where `RIQD_Connected = "N"`**
-*   Searches each serial number
-*   Detects connection by presence of the **IQ Score History** panel
-*   If found → updates `RIQD_Connected` to `"Y"`
-*   Writes changes back to the CSV immediately (crash‑safe)
+- Reads `data/riqd_serial.csv`
+- Skips rows where `RIQD_Connected = "Y"`
+- Posts each remaining serial number to `/iq/timeline`
+- Treats the serial as connected when the JSON response contains one or more `analyses`
+- If found, updates `RIQD_Connected` to `"Y"`
+- Writes changes back to the CSV immediately
 
 You can stop and rerun at any time.
 
@@ -101,8 +105,8 @@ You can stop and rerun at any time.
 
 The CSV **must include**:
 
-*   A serial number column (e.g. `Serial_Number`)
-*   A column named exactly:
+- A serial number column (e.g. `Serial_Number`)
+- A column named exactly:
         RIQD_Connected
 
 Example:
@@ -113,7 +117,17 @@ Serial_Number,Description,RIQD_Connected
 510037,Revoria EC2,Y
 ```
 
-Only rows with `RIQD_Connected = N` are processed.
+Rows with `RIQD_Connected = Y` are skipped. Blank and `N` values are checked.
+
+***
+
+## Tests
+
+```powershell
+pnpm test
+```
+
+The tests cover the API response detection and CSV row processing rules.
 
 ***
 
@@ -132,9 +146,9 @@ pnpm install
 
 ❌ Incorrect:
 
-*   `NODE_TLS_REJECT_UNAUTHORIZED=0`
-*   `strict-ssl=false`
-*   Installing the cert into Node manually
+- `NODE_TLS_REJECT_UNAUTHORIZED=0`
+- `strict-ssl=false`
+- Installing the cert into Node manually
 
 ***
 
@@ -147,10 +161,20 @@ $env:NODE_EXTRA_CA_CERTS = "$PWD\certs\netskope-root.cer"
 pnpm install
 ```
 
+### Missing CSRF token
+
+Refresh the saved session:
+
+```powershell
+pnpm run auth
+```
+
+During `pnpm run auth`, make sure you perform one serial-number search before clicking **Resume**. If automatic capture still fails, copy the current `x-csrftoken` value from a browser network capture into `CSRF_TOKEN` in `.env`.
+
 ***
 
 ## Notes
 
-*   The cert is **not persisted on purpose**
-*   This avoids polluting global Node or system trust stores
-*   Safe for corporate audit environments
+- The cert is **not persisted on purpose**
+- This avoids polluting global Node or system trust stores
+- Safe for corporate audit environments

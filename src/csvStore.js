@@ -30,4 +30,3 @@ const writeCsv = (absPath, headers, records) => {
 };
 
 module.exports = { readCsv, writeCsv };
-``

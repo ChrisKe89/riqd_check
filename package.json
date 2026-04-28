@@ -6,6 +6,7 @@
   "scripts": {
     "auth": "node src/auth.js",
     "run": "node src/index.js",
+    "test": "node --test",
     "postinstall": "pnpm exec playwright install"
   },
   "dependencies": {

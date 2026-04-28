@@ -1,5 +1,6 @@
 node_modules/
 storageState.json
+.riqd-session.json
 .env
 playwright-report/
 test-results/

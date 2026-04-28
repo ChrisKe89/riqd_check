@@ -17,6 +17,7 @@ module.exports = {
   headless: toBool(process.env.HEADLESS, true),
   slowMoMs: toInt(process.env.SLOW_MO_MS, 0),
   defaultTimeoutMs: toInt(process.env.DEFAULT_TIMEOUT_MS, 30000),
-  resultWaitMs: toInt(process.env.RESULT_WAIT_MS, 8000),
+  csrfToken: process.env.CSRF_TOKEN || "",
+  sessionInfoPath: path.resolve(process.env.SESSION_INFO_PATH || "./.riqd-session.json"),
   storageStatePath: path.resolve(process.env.STORAGE_STATE_PATH || "./storageState.json")
 };

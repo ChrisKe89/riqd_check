@@ -1,11 +1,14 @@
-const fs = require("fs");
-const { chromium } = require("playwright");
 const config = require("./config");
 const { readCsv, writeCsv } = require("./csvStore");
-const { gotoTimeline, searchSerial, isConnected } = require("./riqdPage");
-
-const norm = (v) => (v === undefined || v === null ? "" : String(v).trim());
-const isNo = (v) => norm(v).toUpperCase() === "N";
+const {
+  cookieHeaderFromStorageState,
+  createTimelineClient,
+  csrfFromCookies,
+  hasAnalyses,
+  requireCsrfToken
+} = require("./riqdApi");
+const { findSerialColumn, norm, shouldProcessRow } = require("./serialRows");
+const { readSessionToken, resolveCsrfToken } = require("./sessionStore");
 
 (async () => {
   const { absPath, headers, records } = readCsv(config.csvPath);
@@ -14,32 +17,28 @@ const isNo = (v) => norm(v).toUpperCase() === "N";
     throw new Error("CSV must include a header column named RIQD_Connected");
   }
 
-  const serialColumn =
-    headers.find((h) => norm(h).toLowerCase() === "serial_number") ||
-    headers.find((h) => norm(h).toLowerCase() === "serial") ||
-    headers[0];
-
-  const hasStorage = fs.existsSync(config.storageStatePath);
-  const browser = await chromium.launch({ headless: config.headless, slowMo: config.slowMoMs });
-
-  const context = await browser.newContext(
-    hasStorage ? { storageState: config.storageStatePath } : {}
+  const serialColumn = findSerialColumn(headers);
+  const cookies = cookieHeaderFromStorageState(config.storageStatePath, config.baseUrl);
+  const csrfToken = requireCsrfToken(
+    resolveCsrfToken({
+      envToken: config.csrfToken,
+      sessionToken: readSessionToken(config.sessionInfoPath),
+      cookieToken: csrfFromCookies(cookies)
+    })
   );
-
-  const page = await context.newPage();
-  page.setDefaultTimeout(config.defaultTimeoutMs);
-
-  await gotoTimeline(page, config.baseUrl);
-  await page.waitForTimeout(10000);
+  const client = createTimelineClient({
+    baseUrl: config.baseUrl,
+    cookies,
+    csrfToken
+  });
 
   let updated = 0;
   let processed = 0;
 
   for (let i = 0; i < records.length; i++) {
     const row = records[i];
-    const connectedVal = row["RIQD_Connected"];
 
-    if (!isNo(connectedVal)) continue;
+    if (!shouldProcessRow(row)) continue;
 
     const serial = norm(row[serialColumn]);
     if (!serial) continue;
@@ -47,8 +46,8 @@ const isNo = (v) => norm(v).toUpperCase() === "N";
     processed++;
 
     try {
-      await searchSerial(page, serial);
-      const connected = await isConnected(page, config.resultWaitMs);
+      const response = await client.searchSerial(serial);
+      const connected = hasAnalyses(response);
 
       if (connected) {
         row["RIQD_Connected"] = "Y";
@@ -58,16 +57,10 @@ const isNo = (v) => norm(v).toUpperCase() === "N";
     } catch (e) {
       process.stderr.write(`Row ${i + 1} serial ${serial} error: ${e?.message || e}\n`);
     }
-
-    await page.waitForTimeout(250);
   }
-
-  await context.close();
-  await browser.close();
 
   process.stdout.write(`Processed: ${processed}\nUpdated to Y: ${updated}\nCSV: ${absPath}\n`);
 })().catch((err) => {
   process.stderr.write(`${err?.stack || err}\n`);
   process.exitCode = 1;
 });
-``
