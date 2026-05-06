@@ -7,7 +7,8 @@ const {
   hasAnalyses,
   requireCsrfToken
 } = require("./riqdApi");
-const { findSerialColumn, norm, shouldProcessRow } = require("./serialRows");
+const { LiveSerialProgress } = require("./progressReporter");
+const { findSerialColumn, norm, shouldProcessRow, summarizeSerialRows } = require("./serialRows");
 const { readSessionToken, resolveCsrfToken } = require("./sessionStore");
 
 (async () => {
@@ -18,6 +19,11 @@ const { readSessionToken, resolveCsrfToken } = require("./sessionStore");
   }
 
   const serialColumn = findSerialColumn(headers);
+  const summary = summarizeSerialRows(records, serialColumn);
+  const progress = new LiveSerialProgress();
+
+  progress.start(summary);
+
   const cookies = cookieHeaderFromStorageState(config.storageStatePath, config.baseUrl);
   const csrfToken = requireCsrfToken(
     resolveCsrfToken({
@@ -34,6 +40,7 @@ const { readSessionToken, resolveCsrfToken } = require("./sessionStore");
 
   let updated = 0;
   let processed = 0;
+  let errors = 0;
 
   for (let i = 0; i < records.length; i++) {
     const row = records[i];
@@ -44,6 +51,12 @@ const { readSessionToken, resolveCsrfToken } = require("./sessionStore");
     if (!serial) continue;
 
     processed++;
+    progress.checking({
+      current: processed,
+      total: summary.pendingChecks,
+      serial,
+      rowNumber: i + 1
+    });
 
     try {
       const response = await client.searchSerial(serial);
@@ -54,15 +67,17 @@ const { readSessionToken, resolveCsrfToken } = require("./sessionStore");
         updated++;
         writeCsv(absPath, headers, records);
       }
+
+      progress.result({ serial, connected, updated, errors });
     } catch (e) {
-      process.stderr.write(`Row ${i + 1} serial ${serial} error: ${e?.message || e}\n`);
+      errors++;
+      progress.error({ serial, message: e?.message || e, updated, errors });
     }
   }
 
   const copiedPath = copyCsvToOutput(absPath, config.csvOutput);
 
-  process.stdout.write(`Processed: ${processed}\nUpdated to Y: ${updated}\nCSV: ${absPath}\n`);
-  if (copiedPath) process.stdout.write(`Copied CSV to: ${copiedPath}\n`);
+  progress.finish({ updated, errors, csvPath: absPath, copiedPath });
 })().catch((err) => {
   process.stderr.write(`${err?.stack || err}\n`);
   process.exitCode = 1;
