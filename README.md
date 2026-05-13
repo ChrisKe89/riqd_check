@@ -165,17 +165,18 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$RepoRoot\scripts\regis
 
 The CSV **must include**:
 
-- A serial number column (e.g. `Serial_Number`)
-- A column named exactly:
-        RIQD_Connected
+- `Serial_Number`
+- `Product_Code`
+- `Product_Family`
+- `RIQD_Connected`
 
 Example:
 
 ```csv
-Serial_Number,Description,RIQD_Connected
-510036,Revoria EC2,N
-510037,Revoria EC2,Y
-510038,Revoria EC2,
+Serial_Number,Product_Code,Product_Family,RIQD_Connected
+510036,EC2,Revoria,N
+510037,EC2,Revoria,Y
+510038,EC2,Revoria,
 ```
 
 > Rows where `RIQD_Connected` = `Y` are skipped.

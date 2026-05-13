@@ -10,6 +10,7 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 - Replaced normal Playwright UI serial searches with direct POST requests to the IQ Timeline endpoint.
 - Normal runs now skip only rows already marked `RIQD_Connected = Y`; blank and `N` values are checked.
+- CSV validation and examples now use the required `Serial_Number`, `Product_Code`, `Product_Family`, and `RIQD_Connected` headers.
 
 ### Added
 

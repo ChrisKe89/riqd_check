@@ -8,15 +8,14 @@ const {
   requireCsrfToken
 } = require("./riqdApi");
 const { LiveSerialProgress } = require("./progressReporter");
-const { findSerialColumn, norm, shouldProcessRow, summarizeSerialRows } = require("./serialRows");
+const { findSerialColumn, getRequiredCsvHeaderError, norm, shouldProcessRow, summarizeSerialRows } = require("./serialRows");
 const { readSessionToken, resolveCsrfToken } = require("./sessionStore");
 
 (async () => {
   const { absPath, headers, records } = readCsv(config.csvPath);
 
-  if (!headers.includes("RIQD_Connected")) {
-    throw new Error("CSV must include a header column named RIQD_Connected");
-  }
+  const headerError = getRequiredCsvHeaderError(headers);
+  if (headerError) throw new Error(headerError);
 
   const serialColumn = findSerialColumn(headers);
   const summary = summarizeSerialRows(records, serialColumn);
